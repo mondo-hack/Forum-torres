@@ -139,81 +139,89 @@ function formatTime() {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
+// Function to save chat messages to localStorage
+function saveChatMessages(channel, messageData) {
+    // Get existing messages for this channel
+    const allMessages = JSON.parse(localStorage.getItem('chatMessages')) || {};
+    
+    // Initialize channel messages if it doesn't exist
+    if (!allMessages[channel]) {
+        allMessages[channel] = [];
+    }
+    
+    // Add new message
+    allMessages[channel].push(messageData);
+    
+    // Save to localStorage
+    localStorage.setItem('chatMessages', JSON.stringify(allMessages));
+}
+
+// Function to load chat messages from localStorage
+function loadChatMessages(channel) {
+    const allMessages = JSON.parse(localStorage.getItem('chatMessages')) || {};
+    return allMessages[channel] || [];
+}
+
 // Function to add chat message
 function addChatMessage(message, isCurrentUser = true, username = null, isSystem = false) {
     const chatMessages = document.getElementById('chatMessages');
-    if (!chatMessages) return;
-    
-    const messageElement = document.createElement('div');
-    
-    if (isSystem) {
-        messageElement.className = 'message system-message';
-        messageElement.innerHTML = `
-            <div class="message-content">${message}</div>
-        `;
-    } else {
-        messageElement.className = `message ${isCurrentUser ? 'user-message' : 'other-message'}`;
-        
-        const currentUser = JSON.parse(localStorage.getItem('currentUser')) || { username: 'Guest' };
-        const displayName = username || (isCurrentUser ? currentUser.username : 'Lain');
-        const time = formatTime();
-        
-        messageElement.innerHTML = `
-            <div class="message-header">
-                <strong>${displayName}</strong>
-                <small>${time}</small>
-            </div>
-            <div class="message-content">${message}</div>
-        `;
-    }
-    
-    chatMessages.appendChild(messageElement);
-    
-    // Scroll to the bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-// Function to change channel
-function changeChannel(channel) {
-    currentChannel = channel;
-    const channelNameElement = document.getElementById('currentChannel');
-    if (channelNameElement) {
-        channelNameElement.textContent = channel.charAt(0).toUpperCase() + channel.slice(1);
-    }
-    
-    // Clear chat messages
-    const chatMessages = document.getElementById('chatMessages');
-    if (chatMessages) {
+if (chatMessages) {
         chatMessages.innerHTML = '';
     }
     
     // Add welcome message
     addChatMessage(`Selamat datang di channel ${channel}!`, false, 'Admin', true);
     
-    // Add sample messages based on channel
-    const channelMessages = {
-        emel: [
-            { user: 'Admin', message: 'Silahkan diskusi apapun di sini!' }
-        ],
-       sekolah: [
-            { user: 'Admin', message: 'Channel untuk diskusi sekolah' }
-        ],
-       running: [
-            { user: 'Admin', message: 'Channel untuk diskusi olahraga' }
-        ],
-        musik: [
-            { user: 'Admin', message: 'Channel untuk diskusi musik' }
-        ],
-        all: [
-            { user: 'Admin', message: 'Channel untuk diskusi all topik' }
-        ]
-    };
+    // Get saved messages for this channel
+    const savedMessages = loadChatMessages(channel);
     
-    // Add sample messages
-    if (channelMessages[channel]) {
-        channelMessages[channel].forEach(msg => {
-            addChatMessage(msg.message, false, msg.user);
+    // If we have saved messages, display them
+    if (savedMessages && savedMessages.length > 0) {
+        // Display saved messages
+        savedMessages.forEach(msg => {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${msg.isCurrentUser ? 'user-message' : 'other-message'}`;
+            
+            messageElement.innerHTML = `
+                <div class="message-header">
+                    <strong>${msg.username}</strong>
+                    <small>${msg.time}</small>
+                </div>
+                <div class="message-content">${msg.message}</div>
+            `;
+            
+            chatMessages.appendChild(messageElement);
         });
+    } else {
+        // Add sample default messages for new channels
+        const channelMessages = {
+            emel: [
+                { user: 'Admin', message: 'Silahkan diskusi apapun di sini!' }
+            ],
+           sekolah: [
+                { user: 'Admin', message: 'Channel untuk diskusi sekolah' }
+            ],
+           running: [
+                { user: 'Admin', message: 'Channel untuk diskusi olahraga' }
+            ],
+            musik: [
+                { user: 'Admin', message: 'Channel untuk diskusi musik' }
+            ],
+            all: [
+                { user: 'Admin', message: 'Channel untuk diskusi all topik' }
+            ]
+        };
+        
+        // Add sample messages
+        if (channelMessages[channel]) {
+            channelMessages[channel].forEach(msg => {
+                addChatMessage(msg.message, false, msg.user);
+            });
+        }
     }
+    
+    // Scroll to the bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
     
     // Update active channel in UI
     const channelItems = document.querySelectorAll('#channelList .list-group-item');
@@ -272,6 +280,7 @@ function handleSendMessage() {
                 
                 const responses = channelResponses[currentChannel] || channelResponses.emel;
                 const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                const randomUsers = ['Sandra', 'Budi', 'Anita', 'Reza', 'Maya'];
                 const randomUser = randomUsers[Math.floor(Math.random() * randomUsers.length)];
                 
                 addChatMessage(randomResponse, false, randomUser);
@@ -446,4 +455,4 @@ function handleFileUpload() {
         // Reset file input
         fileInput.value = '';
     }
-        }
+}
